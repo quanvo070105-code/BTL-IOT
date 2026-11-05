@@ -1,0 +1,5 @@
+{"t":"hello","fw_ver":"1.0.0"}
+{"t":"tele","node":1,"seq":123,"temp":31.2,"humi":65.0,"light":42,"ai_label":"hot_dry","ai_conf":0.87,"pump":false,"fan":true,"led":false,"mode":"auto","rssi":-55}
+{"t":"ble","node":2,"seq":45,"soil_moist":38,"batt":3.70,"rssi":-71}
+{"t":"ack","node":1,"ack_seq":17,"status":0,"pump":true,"fan":true,"led":false,"mode":"manual"}
+{"t":"cmd","node":1,"seq":17,"target":"pump","value":1}
