@@ -19,6 +19,14 @@ PERIOD_S = 5.0        # Node nha kinh gui moi 5 s
 SOIL_PERIOD_S = 10.0  # Node dat cap nhat moi 10 s
 TARGETS = ("pump", "fan", "led")
 
+# Kich ban moi truong: (nhiet do C, do am %, anh sang %). Go ten kich ban vao cua so fake_sink.
+SCENARIOS = {
+    "normal": (29.0, 68.0, 55),
+    "hot": (38.0, 40.0, 80),     # gia lap may say thoi vao -> nong kho
+    "cold": (19.0, 90.0, 30),    # lanh am
+    "dark": (27.0, 75.0, 5),     # troi toi
+}
+
 
 class FakeSink:
     def __init__(self, drop: float):
@@ -28,6 +36,7 @@ class FakeSink:
         self.seq = self.soil_seq = 0
         self.lock = threading.Lock()
         self.conn = None
+        self.scenario = "normal"
 
     # ---------- gui ----------
     def emit(self, msg: dict) -> None:
@@ -55,13 +64,32 @@ class FakeSink:
         })
 
     def step(self) -> None:
-        """Gia tri dao dong quanh muc trung binh; quat lam mat, bom lam am dat."""
-        t_target = 26.0 if self.state["fan"] else 29.0
-        self.temp = min(45.0, max(18.0, self.temp + 0.1 * (t_target - self.temp) + random.uniform(-0.5, 0.5)))
-        self.humi = min(95.0, max(30.0, self.humi + 0.1 * (68.0 - self.humi) + random.uniform(-1.5, 1.5)))
-        self.light = int(min(100, max(0, self.light + 0.1 * (55 - self.light) + random.randint(-5, 5))))
+        """Gia tri tien dan ve kich ban hien tai; quat lam mat, bom lam am dat."""
+        t_base, h_base, l_base = SCENARIOS[self.scenario]
+        t_target = t_base - 4.0 if self.state["fan"] else t_base
+        k = 0.25  # toc do tien ve muc tieu
+        self.temp = min(45.0, max(15.0, self.temp + k * (t_target - self.temp) + random.uniform(-0.4, 0.4)))
+        self.humi = min(95.0, max(25.0, self.humi + k * (h_base - self.humi) + random.uniform(-1.2, 1.2)))
+        self.light = int(min(100, max(0, self.light + k * (l_base - self.light) + random.randint(-3, 3))))
         s_target = 80 if self.state["pump"] else 45
         self.soil = int(min(100, max(0, self.soil + 0.15 * (s_target - self.soil) + random.randint(-2, 2))))
+
+    def console_loop(self) -> None:
+        """Doc lenh tu ban phim de doi kich ban khi test RuleChain."""
+        print("# Go: normal | hot | cold | dark | status", flush=True)
+        while True:
+            try:
+                cmd = input().strip().lower()
+            except EOFError:
+                return
+            if cmd in SCENARIOS:
+                self.scenario = cmd
+                print(f"# Kich ban -> {cmd} {SCENARIOS[cmd]}", flush=True)
+            elif cmd == "status":
+                print(f"# {self.scenario}: temp={self.temp:.1f} humi={self.humi:.1f} "
+                      f"light={self.light} soil={self.soil} state={self.state}", flush=True)
+            elif cmd:
+                print("# Lenh khong hop le. Dung: normal | hot | cold | dark | status", flush=True)
 
     def sender_loop(self) -> None:
         last_soil = 0.0
@@ -97,6 +125,7 @@ class FakeSink:
 
     def serve(self, host: str, port: int) -> None:
         threading.Thread(target=self.sender_loop, daemon=True).start()
+        threading.Thread(target=self.console_loop, daemon=True).start()
         srv = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         srv.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         srv.bind((host, port))

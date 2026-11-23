@@ -1,0 +1,26 @@
+# T08 - Gateway nhan lenh tu CoreIOT va phan phoi xuong thiet bi (log gateway.py, 2026-11-23)
+# Kich ban: Manual -> bat/tat Pump (thanh cong); chuyen Auto -> bam Pump (bi tu choi locked_auto)
+
+<- RPC GH_NODE_01 getPump None
+-> tra loi RPC GH_NODE_01 id=3: False
+<- RPC GH_NODE_01 getFan None
+-> tra loi RPC GH_NODE_01 id=4: False
+<- RPC GH_NODE_01 getLed None
+-> tra loi RPC GH_NODE_01 id=5: False
+<- RPC GH_NODE_01 setPump True
+-> {"t":"cmd","node":1,"seq":2,"target":"pump","value":1}
+-> tra loi RPC GH_NODE_01 id=6: {'ok': True, 'pump': True}
+<- RPC GH_NODE_01 setPump False
+-> {"t":"cmd","node":1,"seq":3,"target":"pump","value":0}
+-> tra loi RPC GH_NODE_01 id=7: {'ok': True, 'pump': False}
+# GH_NODE_01: che do -> auto
+-> {"t":"cmd","node":1,"seq":4,"target":"mode","value":1}
+# GH_NODE_01: che do -> manual
+-> {"t":"cmd","node":1,"seq":5,"target":"mode","value":0}
+<- RPC GH_NODE_01 setPump True
+-> {"t":"cmd","node":1,"seq":6,"target":"pump","value":1}
+-> tra loi RPC GH_NODE_01 id=8: {'ok': True, 'pump': True}
+# GH_NODE_01: che do -> auto
+-> {"t":"cmd","node":1,"seq":7,"target":"mode","value":1}
+<- RPC GH_NODE_01 setPump False
+-> tra loi RPC GH_NODE_01 id=9: {'ok': False, 'err': 'locked_auto'}
